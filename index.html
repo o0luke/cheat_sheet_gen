@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A4 Cheat Sheet Generator</title>
+    <!-- Google Font: JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --paper-color: #ffffff;
+            --border-color: #aaa;
+            --accent-color: #007bff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* Controls Section */
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace; /* Editor uses mono too */
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row > div {
+            flex: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Preview Section */
+        .preview-area {
+            flex: 2;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            background-color: #e9ebee;
+            padding: 40px 20px;
+            border-radius: 8px;
+            overflow: auto;
+        }
+
+        .paper {
+            width: 210mm;
+            height: 297mm;
+            background: var(--paper-color);
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+            padding: 0;
+            box-sizing: border-box;
+            position: relative;
+            border: 1px solid #ccc;
+            
+            /* CSS Grid to force 2 columns x 4 rows */
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            /* 4 rows of 7.4cm each. Total 29.6cm. A4 is 29.7cm, so 0.05cm padding top/bottom centers it */
+            grid-template-rows: repeat(4, 7.4cm);
+            justify-content: center;
+            align-content: center;
+        }
+
+        .part {
+            width: 10.5cm; /* Explicit width as requested */
+            height: 7.4cm; /* Explicit height as requested */
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+            border: 1px dashed #ccc;
+            background: white;
+            
+            /* Default Text Styles */
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9pt;
+            line-height: 1.3;
+            text-align: justify;
+            color: black;
+        }
+
+        .part-content {
+            padding: 5px;
+            padding-bottom: 20px; /* Extra padding at bottom to not overlap page number */
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Page Numbering */
+        .page-number {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 8pt;
+            color: #666;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        @media print {
+            body { background: none; }
+            .controls { display: none; }
+            .preview-area {
+                padding: 0;
+                background: none;
+            }
+            .paper {
+                box-shadow: none;
+                margin: 0;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cheat Sheet Generator</h1>
+    <p style="text-align:center; margin-top:-10px; margin-bottom:30px; color:#666;">
+        Layout: 2 A4 Sheets x 8 Parts each. Flow: S1-P1, S2-P1, S1-P2...
+    </p>
+
+    <div class="container">
+        <!-- Controls Sidebar -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="content-input">Text Content</label>
+                <textarea id="content-input" placeholder="Paste your notes here..."></textarea>
+            </div>
+
+            <div class="control-group">
+                <div class="row">
+                    <div>
+                        <label for="font-family">Font Family</label>
+                        <select id="font-family">
+                            <option value="'JetBrains Mono', monospace" selected>JetBrains Mono</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Verdana">Verdana</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="font-size">Font Size (pt)</label>
+                        <input type="number" id="font-size" value="9" min="4" max="72" step="0.5">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="row">
+                    <div>
+                        <label for="line-height">Line Height</label>
+                        <select id="line-height">
+                            <option value="1.0">Single (1.0)</option>
+                            <option value="1.2">Tight (1.2)</option>
+                            <option value="1.3" selected>Normal (1.3)</option>
+                            <option value="1.5">Loose (1.5)</option>
+                            <option value="2.0">Double (2.0)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="text-padding">Padding (mm)</label>
+                        <input type="number" id="text-padding" value="3" min="0" max="10" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="text-align">Text Alignment</label>
+                <select id="text-align">
+                    <option value="left">Left</option>
+                    <option value="justify" selected>Justify</option>
+                    <option value="center">Center</option>
+                </select>
+            </div>
+
+            <button onclick="downloadPdf()">Download PDF</button>
+        </div>
+
+        <!-- Live Preview Area -->
+        <div class="preview-area" id="preview-area">
+            <!-- Sheet 1 -->
+            <div class="paper" id="sheet-1"></div>
+            <!-- Sheet 2 -->
+            <div class="paper" id="sheet-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const PARTS_PER_SHEET = 8;
+        const TOTAL_PARTS = 16;
+
+        let flowOrder = [];
+
+        function initLayout() {
+            const sheet1 = document.getElementById('sheet-1');
+            const sheet2 = document.getElementById('sheet-2');
+            
+            sheet1.innerHTML = '';
+            sheet2.innerHTML = '';
+            flowOrder = [];
+
+            // Create parts
+            for (let i = 0; i < TOTAL_PARTS; i++) {
+                const isSheet1 = i < PARTS_PER_SHEET;
+                const parent = isSheet1 ? sheet1 : sheet2;
+                
+                const div = document.createElement('div');
+                div.classList.add('part');
+                
+                const content = document.createElement('div');
+                content.classList.add('part-content');
+                
+                const pageNum = document.createElement('div');
+                pageNum.classList.add('page-number');
+                
+                div.appendChild(content);
+                div.appendChild(pageNum);
+                parent.appendChild(div);
+            }
+
+            // Map FLOW order
+            // Sequence: S1-P1, S2-P1, S1-P2, S2-P2 ...
+            for (let p = 0; p < PARTS_PER_SHEET; p++) {
+                const s1Part = sheet1.children[p];
+                const s2Part = sheet2.children[p];
+                flowOrder.push(s1Part);
+                flowOrder.push(s2Part);
+            }
+            
+            // Set Page Numbers
+            flowOrder.forEach((part, index) => {
+                const numEl = part.querySelector('.page-number');
+                numEl.innerText = (index + 1) + '/' + TOTAL_PARTS;
+            });
+
+            applyStyles();
+            distributeText();
+        }
+
+        function applyStyles() {
+            const fontFamily = document.getElementById('font-family').value;
+            const fontSize = document.getElementById('font-size').value + 'pt';
+            const lineHeight = document.getElementById('line-height').value;
+            const textAlign = document.getElementById('text-align').value;
+            const padding = document.getElementById('text-padding').value + 'mm';
+
+            document.querySelectorAll('.part-content').forEach(el => {
+                el.style.fontFamily = fontFamily;
+                el.style.fontSize = fontSize;
+                el.style.lineHeight = lineHeight;
+                el.style.textAlign = textAlign;
+                el.style.padding = padding;
+            });
+            
+            distributeText();
+        }
+
+        function distributeText() {
+            const rawText = document.getElementById('content-input').value;
+            
+            flowOrder.forEach(part => {
+                part.querySelector('.part-content').innerText = '';
+            });
+
+            let remainingText = rawText;
+
+            for (let i = 0; i < flowOrder.length; i++) {
+                if (!remainingText || remainingText.trim().length === 0) break;
+
+                const partContent = flowOrder[i].querySelector('.part-content');
+                partContent.innerText = remainingText;
+
+                if (isOverflowing(partContent)) {
+                    const fittedText = getFittedText(partContent, remainingText);
+                    partContent.innerText = fittedText;
+                    remainingText = remainingText.substring(fittedText.length).trim();
+                } else {
+                    remainingText = '';
+                }
+            }
+        }
+
+        function isOverflowing(element) {
+            return element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
+        }
+
+        function getFittedText(element, text) {
+            let low = 0;
+            let high = text.length;
+            let bestFit = 0;
+            let iterations = 0;
+            const maxIter = 100;
+
+            while (low <= high && iterations < maxIter) {
+                iterations++;
+                let mid = Math.floor((low + high) / 2);
+                element.innerText = text.substring(0, mid);
+                
+                if (isOverflowing(element)) {
+                    high = mid - 1;
+                } else {
+                    bestFit = mid;
+                    low = mid + 1;
+                }
+            }
+            return text.substring(0, bestFit);
+        }
+
+        // Event Listeners
+        document.getElementById('content-input').addEventListener('input', distributeText);
+        document.getElementById('font-family').addEventListener('change', applyStyles);
+        document.getElementById('font-size').addEventListener('input', applyStyles);
+        document.getElementById('line-height').addEventListener('change', applyStyles);
+        document.getElementById('text-align').addEventListener('change', applyStyles);
+        document.getElementById('text-padding').addEventListener('input', applyStyles);
+
+        // PDF Download
+        function downloadPdf() {
+            const element = document.getElementById('preview-area');
+            const opt = {
+                margin: 0,
+                filename: 'cheatsheet.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        window.onload = initLayout;
+
+    </script>
+</body>
+</html>
