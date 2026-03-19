@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A4 Cheat Sheet Generator</title>
+    <title>Dynamic Cheat Sheet Generator</title>
     <!-- Google Font: JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,6 @@
         :root {
             --bg-color: #f4f4f9;
             --paper-color: #ffffff;
-            --border-color: #aaa;
             --accent-color: #007bff;
         }
 
@@ -26,10 +25,8 @@
             color: #333;
         }
 
-        h1, h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+        h1 { text-align: center; margin-bottom: 10px; }
+        .subtitle { text-align: center; margin-bottom: 30px; color: #666; font-size: 14px; }
 
         .container {
             display: flex;
@@ -56,9 +53,7 @@
             border-bottom: 1px solid #eee;
         }
 
-        .control-group:last-child {
-            border-bottom: none;
-        }
+        .control-group:last-child { border-bottom: none; }
 
         label {
             display: block;
@@ -86,14 +81,8 @@
             box-sizing: border-box;
         }
 
-        .row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .row > div {
-            flex: 1;
-        }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
 
         button {
             width: 100%;
@@ -107,9 +96,7 @@
             transition: background 0.3s;
         }
 
-        button:hover {
-            background-color: #0056b3;
-        }
+        button:hover { background-color: #0056b3; }
 
         /* Preview Section */
         .preview-area {
@@ -118,9 +105,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 40px; /* Gap between sheets in preview */
+            gap: 40px;
             background-color: #e9ebee;
-            padding: 40px 20px; /* Padding around preview */
+            padding: 40px 20px;
             border-radius: 8px;
             overflow: auto;
         }
@@ -135,14 +122,12 @@
             position: relative;
             border: 1px solid #ccc;
             
-            /* CSS Grid to force 2 columns x 4 rows */
+            /* CSS Grid: 2 Columns x 4 Rows */
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: repeat(4, 7.4cm);
             justify-content: center;
             align-content: center;
-            
-            /* Ensure no drift */
             flex-shrink: 0;
         }
 
@@ -165,7 +150,7 @@
 
         .part-content {
             padding: 5px;
-            padding-bottom: 20px; /* Extra padding at bottom to not overlap page number */
+            padding-bottom: 20px; /* Space for page number */
             width: 100%;
             height: 100%;
             box-sizing: border-box;
@@ -181,11 +166,6 @@
             color: #666;
             font-weight: bold;
             pointer-events: none;
-        }
-        
-        /* Helper class to hide elements specifically for PDF generation if needed */
-        .pdf-hide {
-            display: none !important;
         }
 
         @media print {
@@ -206,9 +186,10 @@
 </head>
 <body>
 
-    <h1>Cheat Sheet Generator v2</h1>
-    <p style="text-align:center; margin-top:-10px; margin-bottom:30px; color:#666;">
-        Layout: 2 A4 Sheets x 8 Parts each. Flow: S1-P1, S2-P1, S1-P2...
+    <h1>Cheat Sheet Generator v3</h1>
+    <p class="subtitle">
+        Dynamic Layout: Creates pairs of sheets automatically.<br>
+        Order: S1-P1, S2-P2, S1-P2, S2-P1...
     </p>
 
     <div class="container">
@@ -271,104 +252,205 @@
 
         <!-- Live Preview Area -->
         <div class="preview-area" id="preview-area">
-            <!-- Sheet 1 -->
-            <div class="paper" id="sheet-1"></div>
-            <!-- Sheet 2 -->
-            <div class="paper" id="sheet-2"></div>
+            <!-- Sheets will be generated here by JS -->
         </div>
     </div>
 
     <script>
+        // Configuration
         const PARTS_PER_SHEET = 8;
-        const TOTAL_PARTS = 16;
 
-        let flowOrder = [];
+        // Elements
+        const previewArea = document.getElementById('preview-area');
+        const contentInput = document.getElementById('content-input');
+        const fontFamInput = document.getElementById('font-family');
+        const fontSizeInput = document.getElementById('font-size');
+        const lineHInput = document.getElementById('line-height');
+        const textAlignInput = document.getElementById('text-align');
+        const paddingInput = document.getElementById('text-padding');
 
-        function initLayout() {
-            const sheet1 = document.getElementById('sheet-1');
-            const sheet2 = document.getElementById('sheet-2');
-            
-            sheet1.innerHTML = '';
-            sheet2.innerHTML = '';
-            flowOrder = [];
+        // Event Listeners
+        contentInput.addEventListener('input', renderAll);
+        fontFamInput.addEventListener('change', applyStyles);
+        fontSizeInput.addEventListener('input', applyStyles);
+        lineHInput.addEventListener('change', applyStyles);
+        textAlignInput.addEventListener('change', applyStyles);
+        paddingInput.addEventListener('input', applyStyles);
 
-            // Create parts
-            for (let i = 0; i < TOTAL_PARTS; i++) {
-                const isSheet1 = i < PARTS_PER_SHEET;
-                const parent = isSheet1 ? sheet1 : sheet2;
-                
-                const div = document.createElement('div');
-                div.classList.add('part');
-                
-                const content = document.createElement('div');
-                content.classList.add('part-content');
-                
-                const pageNum = document.createElement('div');
-                pageNum.classList.add('page-number');
-                
-                div.appendChild(content);
-                div.appendChild(pageNum);
-                parent.appendChild(div);
-            }
-
-            // Map FLOW order: S1-P1, S2-P1, S1-P2, S2-P2...
-            for (let p = 0; p < PARTS_PER_SHEET; p++) {
-                const s1Part = sheet1.children[p];
-                const s2Part = sheet2.children[p];
-                flowOrder.push(s1Part);
-                flowOrder.push(s2Part);
-            }
-            
-            // Set Page Numbers
-            flowOrder.forEach((part, index) => {
-                const numEl = part.querySelector('.page-number');
-                numEl.innerText = (index + 1) + '/' + TOTAL_PARTS;
-            });
-
-            applyStyles();
-            distributeText();
-        }
+        // --- Core Logic ---
 
         function applyStyles() {
-            const fontFamily = document.getElementById('font-family').value;
-            const fontSize = document.getElementById('font-size').value + 'pt';
-            const lineHeight = document.getElementById('line-height').value;
-            const textAlign = document.getElementById('text-align').value;
-            const padding = document.getElementById('text-padding').value + 'mm';
+            const styles = {
+                fontFamily: fontFamInput.value,
+                fontSize: fontSizeInput.value + 'pt',
+                lineHeight: lineHInput.value,
+                textAlign: textAlignInput.value,
+                padding: paddingInput.value + 'mm'
+            };
 
             document.querySelectorAll('.part-content').forEach(el => {
-                el.style.fontFamily = fontFamily;
-                el.style.fontSize = fontSize;
-                el.style.lineHeight = lineHeight;
-                el.style.textAlign = textAlign;
-                el.style.padding = padding;
+                el.style.fontFamily = styles.fontFamily;
+                el.style.fontSize = styles.fontSize;
+                el.style.lineHeight = styles.lineHeight;
+                el.style.textAlign = styles.textAlign;
+                el.style.padding = styles.padding;
             });
             
-            distributeText();
+            // Re-distribute text because style changes affect capacity
+            distributeText(); 
         }
 
-        function distributeText() {
-            const rawText = document.getElementById('content-input').value;
+        function renderAll() {
+            const text = contentInput.value;
             
-            flowOrder.forEach(part => {
-                part.querySelector('.part-content').innerText = '';
-            });
+            // 1. Clear existing sheets
+            previewArea.innerHTML = '';
+            
+            // 2. Estimate how many sheets we need (rough estimate to pre-generate)
+            // We start with at least 2 sheets.
+            createSheetPair(1); // Sheet 1 & 2
 
-            let remainingText = rawText;
+            // 3. Distribute text
+            let remainingText = distributeText();
 
-            for (let i = 0; i < flowOrder.length; i++) {
-                if (!remainingText || remainingText.trim().length === 0) break;
+            // 4. If text remains, keep adding pairs of sheets
+            let pairCount = 1;
+            while(remainingText.length > 0) {
+                pairCount++;
+                createSheetPair( (pairCount * 2) - 1 ); // e.g., 3, then 5
+                remainingText = distributeText(remainingText);
+            }
 
-                const partContent = flowOrder[i].querySelector('.part-content');
-                partContent.innerText = remainingText;
+            // 5. Update Page Numbers
+            updatePageNumbers();
+        }
 
-                if (isOverflowing(partContent)) {
-                    const fittedText = getFittedText(partContent, remainingText);
-                    partContent.innerText = fittedText;
-                    remainingText = remainingText.substring(fittedText.length).trim();
-                } else {
-                    remainingText = '';
+        // Create a pair of sheets (n and n+1)
+        function createSheetPair(startIndex) {
+            for (let i = 0; i < 2; i++) {
+                const sheet = document.createElement('div');
+                sheet.classList.add('paper');
+                sheet.id = `sheet-${startIndex + i}`;
+                
+                // Create 8 parts per sheet
+                for (let p = 0; p < PARTS_PER_SHEET; p++) {
+                    const part = document.createElement('div');
+                    part.classList.add('part');
+                    
+                    const content = document.createElement('div');
+                    content.classList.add('part-content');
+                    
+                    const num = document.createElement('div');
+                    num.classList.add('page-number');
+                    
+                    part.appendChild(content);
+                    part.appendChild(num);
+                    sheet.appendChild(part);
                 }
+                previewArea.appendChild(sheet);
+            }
+            // Apply current styles to newly created parts
+            applyStyles(); 
+        }
+
+        // Logic to fill text based on the specific requested order
+        function distributeText(startText = contentInput.value) {
+            let text = startText;
+            
+            // Clear all existing content first (visual reset)
+            document.querySelectorAll('.part-content').forEach(el => el.innerText = '');
+
+            // Get all sheets currently in DOM
+            const sheets = document.querySelectorAll('.paper');
+            const totalSheets = sheets.length;
+
+            // We process sheets in pairs (0 & 1, 2 & 3...)
+            for (let i = 0; i < totalSheets; i += 2) {
+                const sheetA = sheets[i];     // e.g., Sheet 1
+                const sheetB = sheets[i+1];   // e.g., Sheet 2
+                
+                if (!sheetA || !sheetB) break;
+
+                // We process rows 0 to 3 (Top to Bottom)
+                for (let row = 0; row < 4; row++) {
+                    // Calculate Part Indices (0-7)
+                    // Row 0 -> Indices 0 (Left), 1 (Right)
+                    // Row 1 -> Indices 2 (Left), 3 (Right)
+                    const leftIndex = row * 2;
+                    const rightIndex = row * 2 + 1;
+
+                    // The Requested Order:
+                    // 1. Part 1 (Left) of Sheet A
+                    text = fillPart(sheetA.children[leftIndex], text);
+                    if (text.length === 0) return '';
+
+                    // 2. Part 2 (Right) of Sheet B
+                    text = fillPart(sheetB.children[rightIndex], text);
+                    if (text.length === 0) return '';
+
+                    // 3. Part 2 (Right) of Sheet A
+                    text = fillPart(sheetA.children[rightIndex], text);
+                    if (text.length === 0) return '';
+
+                    // 4. Part 1 (Left) of Sheet B
+                    text = fillPart(sheetB.children[leftIndex], text);
+                    if (text.length === 0) return '';
+                }
+            }
+            return text;
+        }
+
+        function fillPart(partElement, text) {
+            if (!text || text.trim().length === 0) return '';
+
+            const contentDiv = partElement.querySelector('.part-content');
+            
+            // Try fitting all text
+            contentDiv.innerText = text;
+
+            if (isOverflowing(contentDiv)) {
+                const fittedText = getFittedText(contentDiv, text);
+                contentDiv.innerText = fittedText;
+                return text.substring(fittedText.length).trim();
+            } else {
+                // Fits completely
+                return '';
+            }
+        }
+
+        function updatePageNumbers() {
+            const parts = document.querySelectorAll('.part');
+            const totalParts = parts.length;
+            let count = 1;
+
+            // We need to iterate in the SAME order we filled them to get correct page numbers
+            const sheets = document.querySelectorAll('.paper');
+            const totalSheets = sheets.length;
+
+            for (let i = 0; i < totalSheets; i += 2) {
+                const sheetA = sheets[i];
+                const sheetB = sheets[i+1];
+                if (!sheetA || !sheetB) break;
+
+                for (let row = 0; row < 4; row++) {
+                    const leftIndex = row * 2;
+                    const rightIndex = row * 2 + 1;
+
+                    // Order: S1-L, S2-R, S1-R, S2-L
+                    const p1 = sheetA.children[leftIndex];
+                    const p2 = sheetB.children[rightIndex];
+                    const p3 = sheetA.children[rightIndex];
+                    const p4 = sheetB.children[leftIndex];
+
+                    setNum(p1, count++);
+                    setNum(p2, count++);
+                    setNum(p3, count++);
+                    setNum(p4, count++);
+                }
+            }
+
+            function setNum(el, num) {
+                if(el) el.querySelector('.page-number').innerText = num;
             }
         }
 
@@ -398,22 +480,14 @@
             return text.substring(0, bestFit);
         }
 
-        // Event Listeners
-        document.getElementById('content-input').addEventListener('input', distributeText);
-        document.getElementById('font-family').addEventListener('change', applyStyles);
-        document.getElementById('font-size').addEventListener('input', applyStyles);
-        document.getElementById('line-height').addEventListener('change', applyStyles);
-        document.getElementById('text-align').addEventListener('change', applyStyles);
-        document.getElementById('text-padding').addEventListener('input', applyStyles);
-
         // PDF Download
         function downloadPdf() {
             const element = document.getElementById('preview-area');
             
-            // Temporarily remove styling that interferes with PDF layout (padding/gaps)
+            // Temporarily remove styling that interferes with PDF layout
             const originalPadding = element.style.padding;
             const originalGap = element.style.gap;
-            const originalBg = element.style.backgroundColor;
+            const originalBg = element.style.background;
             
             element.style.padding = '0';
             element.style.gap = '0';
@@ -426,21 +500,22 @@
                 html2canvas: { 
                     scale: 2,
                     scrollY: 0,
-                    scrollX: 0,
+                    scrollX: 0
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
-                // Restore original styles
+                // Restore styles
                 element.style.padding = originalPadding;
                 element.style.gap = originalGap;
-                element.style.backgroundColor = originalBg;
+                element.style.background = originalBg;
             });
         }
 
-        window.onload = initLayout;
+        // Initial Load
+        renderAll();
 
     </script>
 </body>
