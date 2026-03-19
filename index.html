@@ -73,7 +73,7 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace; /* Editor uses mono too */
+            font-family: 'JetBrains Mono', monospace;
             resize: vertical;
             box-sizing: border-box;
         }
@@ -118,9 +118,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 40px;
+            gap: 40px; /* Gap between sheets in preview */
             background-color: #e9ebee;
-            padding: 40px 20px;
+            padding: 40px 20px; /* Padding around preview */
             border-radius: 8px;
             overflow: auto;
         }
@@ -138,15 +138,17 @@
             /* CSS Grid to force 2 columns x 4 rows */
             display: grid;
             grid-template-columns: 1fr 1fr;
-            /* 4 rows of 7.4cm each. Total 29.6cm. A4 is 29.7cm, so 0.05cm padding top/bottom centers it */
             grid-template-rows: repeat(4, 7.4cm);
             justify-content: center;
             align-content: center;
+            
+            /* Ensure no drift */
+            flex-shrink: 0;
         }
 
         .part {
-            width: 10.5cm; /* Explicit width as requested */
-            height: 7.4cm; /* Explicit height as requested */
+            width: 10.5cm;
+            height: 7.4cm;
             box-sizing: border-box;
             overflow: hidden;
             position: relative;
@@ -180,6 +182,11 @@
             font-weight: bold;
             pointer-events: none;
         }
+        
+        /* Helper class to hide elements specifically for PDF generation if needed */
+        .pdf-hide {
+            display: none !important;
+        }
 
         @media print {
             body { background: none; }
@@ -187,6 +194,7 @@
             .preview-area {
                 padding: 0;
                 background: none;
+                gap: 0;
             }
             .paper {
                 box-shadow: none;
@@ -198,7 +206,7 @@
 </head>
 <body>
 
-    <h1>Cheat Sheet Generator</h1>
+    <h1>Cheat Sheet Generator v2</h1>
     <p style="text-align:center; margin-top:-10px; margin-bottom:30px; color:#666;">
         Layout: 2 A4 Sheets x 8 Parts each. Flow: S1-P1, S2-P1, S1-P2...
     </p>
@@ -303,8 +311,7 @@
                 parent.appendChild(div);
             }
 
-            // Map FLOW order
-            // Sequence: S1-P1, S2-P1, S1-P2, S2-P2 ...
+            // Map FLOW order: S1-P1, S2-P1, S1-P2, S2-P2...
             for (let p = 0; p < PARTS_PER_SHEET; p++) {
                 const s1Part = sheet1.children[p];
                 const s2Part = sheet2.children[p];
@@ -402,16 +409,35 @@
         // PDF Download
         function downloadPdf() {
             const element = document.getElementById('preview-area');
+            
+            // Temporarily remove styling that interferes with PDF layout (padding/gaps)
+            const originalPadding = element.style.padding;
+            const originalGap = element.style.gap;
+            const originalBg = element.style.backgroundColor;
+            
+            element.style.padding = '0';
+            element.style.gap = '0';
+            element.style.background = 'none';
+
             const opt = {
                 margin: 0,
                 filename: 'cheatsheet.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
+                html2canvas: { 
+                    scale: 2,
+                    scrollY: 0,
+                    scrollX: 0,
+                },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restore original styles
+                element.style.padding = originalPadding;
+                element.style.gap = originalGap;
+                element.style.backgroundColor = originalBg;
+            });
         }
 
         window.onload = initLayout;
