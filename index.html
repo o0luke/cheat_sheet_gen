@@ -98,6 +98,89 @@
 
         button:hover { background-color: #0056b3; }
 
+        .danger-btn {
+            background-color: #1f7a8c;
+        }
+
+        .danger-btn:hover {
+            background-color: #155a66;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #ececec;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .modal-body {
+            padding: 18px 20px;
+            line-height: 1.5;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .modal-actions {
+            padding: 16px 20px 20px;
+            border-top: 1px solid #ececec;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            width: auto;
+            min-width: 120px;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .secondary-btn {
+            background-color: #d8dde3;
+            color: #1f2a36;
+        }
+
+        .secondary-btn:hover {
+            background-color: #c4ccd4;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: translateY(8px) scale(0.98);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
         /* Preview Section */
         .preview-area {
             flex: 2;
@@ -186,9 +269,9 @@
 </head>
 <body>
 
-    <h1>Cheat Sheet Generator v3</h1>
+    <h1>Cheat Sheet Generator v4.1</h1>
     <p class="subtitle">
-        Made by <a href="https://kevinmanoj.netlify.app" target="_blank">Luke</a> With ❤️.
+        Made With ❤️ by <a href="https://kevinmanoj.netlify.app" target="_blank">Luke</a>.
     </p>
 
     <div class="container">
@@ -246,12 +329,26 @@
                 </select>
             </div>
 
-            <button onclick="downloadPdf()">Download PDF</button>
+            <button onclick="openDownloadDisclaimer()">Download PDF</button>
         </div>
 
         <!-- Live Preview Area -->
         <div class="preview-area" id="preview-area">
             <!-- Sheets will be generated here by JS -->
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="download-modal" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="download-modal-title">
+            <div class="modal-header" id="download-modal-title">Before You Download</div>
+            <div class="modal-body">
+                I am not responsible for any unethical or illegal activities carried out using this application.
+                Please use this tool responsibly and only for ethical and lawful purposes.
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" type="button" onclick="closeDownloadDisclaimer()">Cancel</button>
+                <button class="danger-btn" type="button" onclick="confirmDownloadPdf()">Download PDF</button>
+            </div>
         </div>
     </div>
 
@@ -512,6 +609,29 @@
                 element.style.background = originalBg;
             });
         }
+
+        function openDownloadDisclaimer() {
+            const modal = document.getElementById('download-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeDownloadDisclaimer() {
+            const modal = document.getElementById('download-modal');
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function confirmDownloadPdf() {
+            closeDownloadDisclaimer();
+            downloadPdf();
+        }
+
+        document.getElementById('download-modal').addEventListener('click', function(event) {
+            if (event.target.id === 'download-modal') {
+                closeDownloadDisclaimer();
+            }
+        });
 
         // Initial Load
         renderAll();
