@@ -1,6 +1,7 @@
 # Cheat Sheet Generator
 
 A browser-based cheat sheet generator that turns plain text into a printable, multi-page A4 layout. Adjust the typography and spacing in a live preview, then export the result as a PDF.
+Live: https://cheatsheetgen.netlify.app/
 
 ## Features
 
